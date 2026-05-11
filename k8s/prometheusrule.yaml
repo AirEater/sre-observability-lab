@@ -1,0 +1,39 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sre-app-rules
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  groups:
+    - name: sre-app
+      rules:
+        - alert: AppDown
+          expr: up{job="sre-app"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "FastAPI app is down"
+        - alert: HighErrorRate
+          expr: sum(rate(http_requests_total{status=~"5.."}[5m])) > 0.1
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "5xx error rate > 0.1/s"
+        - alert: HighLatency
+          expr: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m]))) > 1
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "p95 latency > 1s"
+        - alert: PodRestarting
+          expr: increase(kube_pod_container_status_restarts_total{namespace="sre-demo"}[15m]) > 2
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod restarting frequently"

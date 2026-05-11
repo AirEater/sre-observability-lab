@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sre-app
+  namespace: monitoring
+  labels:
+    release: monitoring   # ← 必须 match Helm release 名,否则 Prometheus 不认
+spec:
+  selector:
+    matchLabels:
+      app: sre-app        # ← match Service labels
+  namespaceSelector:
+    matchNames:
+      - sre-demo
+  endpoints:
+    - port: http          # ← Service 里的 named port,不是端口号
+      path: /metrics
+      interval: 15s
