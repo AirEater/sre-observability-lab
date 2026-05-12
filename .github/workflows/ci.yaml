@@ -78,11 +78,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: azure/setup-kubectl@v3
+      - name: Install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+            | tar xz -C /usr/local/bin kubeconform
 
-      - name: kubectl client-side dry-run (skip CRDs)
+      - name: Validate k8s manifests (skip CRDs)
         run: |
           for f in k8s/namespace.yaml k8s/configmap.yaml k8s/secret.yaml \
                    k8s/deployment.yaml k8s/service.yaml; do
-            kubectl apply --dry-run=client -f $f
+            kubeconform -strict -summary "$f"
           done
