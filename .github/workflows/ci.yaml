@@ -11,6 +11,24 @@ env:
   ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
 
 jobs:
+  changes:
+    name: Detect Changed Paths
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.filter.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check image build inputs
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            image:
+              - 'app/**'
+              - 'Dockerfile'
+              - '.dockerignore'
+
   test:
     name: Run pytest
     runs-on: ubuntu-latest
@@ -32,9 +50,9 @@ jobs:
   docker-build-push:
     name: Build + Push to ECR
     runs-on: ubuntu-latest
-    needs: test
-    # 只在 push 到 main 时 push image,PR 只 build 不 push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [test, changes]
+    # 只在 push 到 main 且镜像构建输入有变化时 push image。
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.image == 'true'
     steps:
       - uses: actions/checkout@v4
 
